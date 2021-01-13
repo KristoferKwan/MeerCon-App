@@ -1,0 +1,107 @@
+CREATE TABLE IF NOT EXISTS Users(
+  email VARCHAR(128) NOT NULL,
+  password VARCHAR(128) NOT NULL,
+  first_name VARCHAR(128) NOT NULL,
+  last_name VARCHAR(128) NOT NULL,
+  image_url VARCHAR(128),
+  mute_notifications BOOLEAN NOT NULL,
+  created_on DATE NOT NULL DEFAULT (NOW()),
+  PRIMARY KEY (email));
+
+CREATE TABLE IF NOT EXISTS People (
+  person_id SERIAL PRIMARY KEY,
+  first_name VARCHAR(128) NOT NULL,
+  last_name VARCHAR(128) NOT NULL,
+  email VARCHAR(128) NULL,
+  phone_number VARCHAR(12) NULL,
+  send_messages BOOLEAN DEFAULT FALSE,
+  created_on DATE NOT NULL DEFAULT (NOW()),
+  created_by VARCHAR(128) NOT NULL,
+  message_type VARCHAR(11) NULL,
+  FOREIGN KEY (created_by)
+    REFERENCES Users(email)
+    ON UPDATE CASCADE ON DELETE CASCADE);
+
+CREATE TABLE IF NOT EXISTS Devices (
+  device_id SERIAL PRIMARY KEY,
+  owner_id VARCHAR(128) NOT NULL,
+  device_name VARCHAR(128) NOT NULL,
+  ip VARCHAR(128) NOT NULL,
+  mac_address VARCHAR(12) NOT NULL,
+  created_on DATE NOT NULL DEFAULT (NOW()),
+  FOREIGN KEY (owner_id) 
+    REFERENCES Users(email) 
+    ON UPDATE CASCADE ON DELETE CASCADE );
+
+CREATE TABLE IF NOT EXISTS DevicesGroup (
+  id SERIAL PRIMARY KEY,
+  group_id INT NOT NULL,
+  device_id INT NOT NULL,
+  created_on DATE NOT NULL DEFAULT (NOW()),
+  created_by VARCHAR(128) NOT NULL,
+  FOREIGN KEY (group_id)
+    REFERENCES Groups(id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  FOREIGN KEY (device_id)
+    REFERENCES Devices(device_id)
+    ON UPDATE CASCADE ON DELETE CASCADE);
+
+CREATE TABLE IF NOT EXISTS DeviceRecords (
+  device_record_id SERIAL PRIMARY KEY,
+  device_id INT NOT NULL,
+  video_recording_url VARCHAR(128) NOT NULL,
+  record_timestamp DATE NOT NULL DEFAULT (NOW()),
+  favorite BOOLEAN DEFAULT FALSE,
+  duration FLOAT NOT NULL,
+  threat_level INT NOT NULL,
+  created_on DATE NOT NULL DEFAULT (NOW()),
+  created_by VARCHAR(128) NOT NULL,
+  FOREIGN KEY (device_id)
+    REFERENCES Devices(device_id)
+    ON UPDATE CASCADE ON DELETE CASCADE );
+
+CREATE TABLE IF NOT EXISTS PersonDeviceRecords (
+  id SERIAL PRIMARY KEY,
+  person_id INT NOT NULL,
+  device_record_id INT NOT NULL,
+  created_on DATE NOT NULL DEFAULT (NOW()),
+  created_by VARCHAR(128) NOT NULL,
+  FOREIGN KEY (person_id)
+    REFERENCES People(person_id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  FOREIGN KEY (device_record_id)
+    REFERENCES DeviceRecords(device_record_id)
+    ON UPDATE CASCADE ON DELETE CASCADE );
+
+CREATE TABLE IF NOT EXISTS Groups (
+  id SERIAL PRIMARY KEY,
+  created_on DATE NOT NULL DEFAULT (NOW()),
+  created_by VARCHAR(128) NOT NULL,
+  group_name VARCHAR(128) NOT NULL,
+  FOREIGN KEY (created_by)
+    REFERENCES Users(email)
+    ON UPDATE CASCADE ON DELETE CASCADE );
+
+CREATE TABLE IF NOT EXISTS GroupPeople (
+  id SERIAL PRIMARY KEY,
+  person_id INT NOT NULL,
+  group_id INT NOT NULL,
+  created_on DATE NOT NULL DEFAULT (NOW()),
+  created_by VARCHAR(128) NOT NULL,
+  FOREIGN KEY (person_id)
+    REFERENCES People(person_id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  FOREIGN KEY (group_id)
+    REFERENCES Groups(id)
+    ON UPDATE CASCADE ON DELETE CASCADE );
+
+CREATE TABLE IF NOT EXISTS Photos (
+  photo_id SERIAL PRIMARY KEY,
+  person_id INT NOT NULL,
+  photo_type VARCHAR(5) NOT NULL,
+  image_url VARCHAR(128) NOT NULL,
+  created_on DATE NOT NULL DEFAULT (NOW()),
+  created_by VARCHAR(128) NOT NULL,
+  FOREIGN KEY (person_id)
+    REFERENCES People(person_id)
+    ON UPDATE CASCADE ON DELETE CASCADE );

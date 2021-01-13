@@ -1,0 +1,8 @@
+.env
+config.config
+scratch.psql
+node_modules
+/frontend
+/.idea
+/flaskserver
+/bluetooth
