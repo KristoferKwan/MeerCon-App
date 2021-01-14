@@ -134,11 +134,11 @@ const deletePersonFromGroup = async (req, res) => {
  */
 const getNamesByGroupId = async (groupId, email) => {
   const getPersonQuery = `SELECT 
-      CONCAT(first_name, ' ', last_name),
+      CONCAT(first_name, ' ', last_name) AS name,
       p.person_id 
     FROM 
       people p
-      INNER JOIN group_people gp
+      INNER JOIN grouppeople gp
       ON p.person_id = gp.person_id
     WHERE
       gp.group_id=$1 AND p.created_by=$2
@@ -165,7 +165,7 @@ const getNamesByGroupId = async (groupId, email) => {
    * @returns {object} group and people rows
    */
 const getGroupById = async (req, res) => {
-  const { groupId } = req.query.groupId;
+  const { groupId } = req.query;
   const { email } = req.user;
   const getGroupQuery = `SELECT * FROM groups WHERE id = $1 AND created_by = $2`;
   const values = [groupId, email]
@@ -267,13 +267,13 @@ const updateGroupById = async (req, res) => {
   }
 
   const updateGroupQuery = `UPDATE groups
-  SET group_name=$1,
+  SET group_name=$1
   WHERE
     groups.id=$2 AND groups.created_by=$3
   returning *;`;
   const values = [
-    groupId,
     groupName,
+    groupId,
     email
   ];
   try {
@@ -287,7 +287,7 @@ const updateGroupById = async (req, res) => {
     successMessage.data.message = 'Group updated successfully';
     return res.status(status.success).send(successMessage);
   } catch (error) {
-    errorMessage.error = 'Operation was not successful';
+    errorMessage.error = 'Operation was not successful: ' + error.message;
     return res.status(status.error).send(errorMessage);
   }
 };

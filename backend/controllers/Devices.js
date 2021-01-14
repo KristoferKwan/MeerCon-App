@@ -23,18 +23,18 @@ const { isValidIPaddress, isValidMacAddress } = require('../helpers/utils');
  */
 const createDevice = async (req, res) => {
   const {
-    deviceName, ip, mac_address
+    deviceName, ip, macAddress
   } = req.body;
   const { email }  = req.user;
 
 
-  if (isEmpty(deviceName) || isEmpty(ip) || isEmpty(mac_address)) {
+  if (isEmpty(deviceName) || isEmpty(ip) || isEmpty(macAddress)) {
     errorMessage.error = 'Device Name, IP, and MAC Address fields cannot be empty';
     return res.status(status.bad).send(errorMessage);
   } else if(!isValidIPaddress(ip)){
     errorMessage.error = 'IP Address is invalid';
     return res.status(status.bad).send(errorMessage);
-  } else if(!isValidMacAddress(mac_address)) {
+  } else if(!isValidMacAddress(macAddress)) {
     errorMessage.error = 'MAC Address is invalid';
     return res.status(status.bad).send(errorMessage);
   }
@@ -47,7 +47,7 @@ const createDevice = async (req, res) => {
     email,
     deviceName,
     ip,
-    mac_address
+    macAddress
   ];
 
   try {
@@ -68,11 +68,11 @@ const createDevice = async (req, res) => {
    * @returns {object} Device object
    */
 const getDeviceById = async (req, res) => {
-  const { deviceId } = req.query.deviceId;
-  const { email } = req.user.email;
-  const getPersonQuery = 'SELECT * FROM devices WHERE device_id=$1 AND createdby=$2';
+  const { deviceId } = req.query;
+  const { email } = req.user;
+  const getPersonQuery = 'SELECT * FROM devices WHERE device_id=$1 AND owner_id=$2';
   const values = [deviceId, email]
-  
+
   if(empty(deviceId) || isEmpty(email)){
     errorMessage.error = 'Device Id and Email fields are required.';
     return res.status(status.error).send(errorMessage);
@@ -146,16 +146,17 @@ const deleteDeviceRecord = async (record) => {
  * @param {object} deviceRecordId
  * @returns {object} Error or null
  */
-const deleteDeviceRecordsByDeviceId = async (req, deviceRecordId) => {
+const deleteDeviceRecordsByDeviceId = async (req, deviceId) => {
   const {email} = req.user 
   const deviceRecordsQuery = `SELECT * FROM devicerecords WHERE device_id=$1 AND created_by=$2`;
   const deleteDeviceRecordsQuery = `DELETE FROM devicerecords WHERE device_id=$1 AND created_by=$2 returning *`;
   const values = [
-    deviceRecordId,
+    deviceId,
     email,
   ];
   try {
-    const { devices } = await dbQuery.query(deviceRecordsQuery, values);
+    let devices = await dbQuery.query(deviceRecordsQuery, values);
+    devices = devices.rows
     let dbResponse = devices[0];
     if (!dbResponse) {
       throw Error('There are no device records related to this given id');
@@ -188,9 +189,9 @@ const deleteDeviceRecordsByDevice = async (req, res) => {
     deviceRecordId,
     email,
   ];
-  
   try {
-    const { devices } = await dbQuery.query(deviceRecordsQuery, values);
+    let devices = await dbQuery.query(deviceRecordsQuery, values);
+    devices = devices.rows;
     let dbResponse = devices[0];
     if (!dbResponse) {
       throw Error('There are no device records related to this given id');
@@ -221,7 +222,6 @@ const deleteDeviceRecordsByDevice = async (req, res) => {
 const deleteDeviceById = async (req, res) => {
   const { deviceId } = req.body;
   const { email } = req.user;
-  
   try{
     await deleteDeviceRecordsByDeviceId(req, deviceId)
   } catch (error) {
@@ -230,7 +230,7 @@ const deleteDeviceById = async (req, res) => {
   }
   
   const deleteDeviceQuery = `DELETE FROM devices 
-  WHERE device_id=$1 AND created_by=$2
+  WHERE device_id=$1 AND owner_id=$2
   returning *;`;
   const values = [
     deviceId,
@@ -238,6 +238,7 @@ const deleteDeviceById = async (req, res) => {
   ];
   try {
     const { rows } = await dbQuery.query(deleteDeviceQuery, values);
+    console.log(rows);
     const dbResponse = rows[0];
     if (!dbResponse) {
       errorMessage.error = 'There is no device with that id';
@@ -277,7 +278,7 @@ const updateDeviceById = async (req, res) => {
   const updateDeviceQuery = `UPDATE devices
   SET device_name=$1,
       ip=$2,
-      mac_address=$3,
+      mac_address=$3
   WHERE
     device_id=$4 AND owner_id=$5
   returning *;`;
@@ -313,25 +314,25 @@ const updateDeviceById = async (req, res) => {
 const getDeviceRecordsByDate = async (req, res) => {
   const { date } = req.query;
   const { email } = req.user;
+  console.log(date, email);
+
   const getDeviceRecordsQuery = `SELECT
-  dr.device_record_id,
-  dr.device_id,
-  dr.video_recording_url,
-  dr.record_timestamp,
-  dr.favorite,
-  dr.duration,
-  dr.threat_level,
-  dr.created_on,
-  dr.created_by, 
-  CONCAT(p.first_name, ' ', p.last_name, ', ') as faces_detected
+  dr.*, 
+  STRING_AGG(
+    p.first_name || ' ' || p.last_name, 
+    ', '
+    ORDER BY
+      p.last_name ASC,
+      p.first_name ASC
+    ) as faces_detected
 FROM 
   devicerecords dr
-  LEFT JOIN peopledevicerecords pdr
-  ON dr.device_id = pdr.device_id
-  INNER JOIN people p
+  LEFT JOIN persondevicerecords pdr
+  ON dr.device_record_id = pdr.device_record_id
+  LEFT JOIN people p
   ON p.person_id = pdr.person_id 
 WHERE
-  dr.date=$1 AND p.created_by=$2
+  dr.created_on=$1 AND dr.created_by=$2
 GROUP BY
   dr.device_record_id,
   dr.device_id,

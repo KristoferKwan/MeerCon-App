@@ -192,16 +192,18 @@ const updatePhotoOfUser = async (email, photo) => {
   const updateUser = async (req, res) => {
     const { firstName, lastName, muteNotifications } = req.body;
     const userEmail = req.user.email;
-    const { photo } = req.files;
+    let photo;
+    photo = req.files ? req.files.photo : null;
+
     if (isEmpty(userEmail) || isEmpty(firstName) || isEmpty(lastName) || isEmpty(muteNotifications)) {
       errorMessage.error = 'User Email, First Name, Last Name, and Mute Notifications fields cannot be empty';
       return res.status(status.bad).send(errorMessage);
     }
 
-    const updatePersonQuery = `UPDATE people
+    const updatePersonQuery = `UPDATE users
     SET first_name=$1,
         last_name=$2,
-        mute_notifications=$3,
+        mute_notifications=$3
     WHERE
       email=$4
     returning *;`;

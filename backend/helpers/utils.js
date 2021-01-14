@@ -4,7 +4,7 @@ const getObjectKeysAndValues = async (object) => {
 
 const isValidMacAddress = async (macAddress) => {
   const regexp = /^(([A-Fa-f0-9]{2}[:]){5}[A-Fa-f0-9]{2}[,]?)+$/i;
-  const mac_address = macAddress.val();
+  const mac_address = macAddress;
   if(regexp.test(mac_address)) {
       return true;
   } return false;

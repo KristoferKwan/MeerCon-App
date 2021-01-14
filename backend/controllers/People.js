@@ -384,7 +384,6 @@ const updatePhotoOfPerson = async (req, res) => {
   const { photoType, personId } = req.body;
   const { photo } = req.files
   const { email } = req.user;
-  
   if (empty(personId) || isEmpty(photoType) || !photo ) {
     errorMessage.error = 'Person ID, Photo Type, and Photo fields cannot be empty';
     return res.status(status.bad).send(errorMessage);
@@ -404,7 +403,7 @@ const updatePhotoOfPerson = async (req, res) => {
   ];
 
   try{
-    await uploadFile(photo, imageurl)
+    await uploadFile(photo.data, imageurl)
   } catch (error) {
     errorMessage.error = 'Operation was not successful: ' + error.message;
     return res.status(status.error).send(errorMessage);
